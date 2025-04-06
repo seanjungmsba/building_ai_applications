@@ -1,62 +1,100 @@
 import torch
 from nltk import word_tokenize
 
-# Function - tokenize_sentence
 def tokenize_sentence(sentence: str) -> list[str]:
-    # Control Flow
+    """
+    Tokenizes a given sentence into words using NLTK's word_tokenize.
+
+    Args:
+        sentence (str): A string containing a single sentence. Must end with a period.
+
+    Returns:
+        list[str]: A list of tokens (words) extracted from the sentence.
+
+    Raises:
+        ValueError: If the input string does not contain a period, indicating it may not be a full sentence.
+    """
+    # Check that the input is likely a sentence
     if '.' in sentence:
-        sentence = sentence.replace('.', '')
+        sentence = sentence.replace('.', '')  # Remove the period
     else:
         raise ValueError("The input text is not a sentence.")
 
     return word_tokenize(sentence)
 
-# Function - Create a vocabulary of words
-def create_word_vocab(tokens: list[str]) -> dict:
-    # Create a dictionary
-    return {token : idx for idx, token in enumerate(set(tokens))}
 
-# Function - Generate an embedding
+def create_word_vocab(tokens: list[str]) -> dict:
+    """
+    Creates a vocabulary dictionary that maps each unique word to a unique integer index.
+
+    Args:
+        tokens (list[str]): A list of tokenized words.
+
+    Returns:
+        dict: A dictionary where keys are unique words and values are integer indices.
+    """
+    return {token: idx for idx, token in enumerate(set(tokens))}
+
+
 def generate_embedding(vocab: dict, tokens: list[str], embedding_dim: int = 5) -> torch.Tensor:
-    # Get the token indices from the tokens
+    """
+    Generates a PyTorch embedding tensor for the input tokens using a randomly initialized embedding layer.
+
+    Args:
+        vocab (dict): A word-to-index vocabulary mapping.
+        tokens (list[str]): A list of tokenized words from the input sentence.
+        embedding_dim (int): The dimensionality of the embedding vector for each token.
+
+    Returns:
+        torch.Tensor: A tensor of shape (len(tokens), embedding_dim) representing word embeddings.
+    
+    Notes:
+        - The embeddings are randomly initialized and not trained.
+        - Useful for testing or illustrating how embeddings work.
+    """
+    # Convert each token into its corresponding index
     token_indices = [vocab[token] for token in tokens]
 
-    # Build an input tensor based on the token indices
+    # Convert to a PyTorch tensor
     input_tensor = torch.tensor(token_indices)
 
-    # Build the embedding layer
-    embedding_layer = torch.nn.Embedding(num_embeddings=len(vocab), embedding_dim=embedding_dim)
+    # Create an embedding layer with random weights
+    embedding_layer = torch.nn.Embedding(
+        num_embeddings=len(vocab), 
+        embedding_dim=embedding_dim
+    )
 
-    # Create the encodings
+    # Generate embeddings
     embedded_output: torch.Tensor = embedding_layer(input_tensor)
 
     print(f"Word Embeddings: {embedded_output}")
-    print(f"Shape of the embeddings: {embedded_output.shape}")
-    
     '''
-    Word Embeddings: tensor([[-0.5711,  0.0602,  0.1258, -1.5879,  1.2770],
-        [ 0.3306,  1.8695, -0.1848, -0.1870,  0.8795],
-        [-2.7947, -0.3038,  0.5011, -0.2378,  1.2127],
-        [-0.5069,  0.8572,  0.9240,  0.3406, -0.1319],
-        [ 2.7054, -2.0263,  0.9181, -0.9775,  1.5310]],
+    Word Embeddings: tensor([[-0.9760, -0.2332, -0.1486, -0.0752, -0.5735],
+        [-2.4092, -0.2145,  0.7495,  0.4592, -0.0860],
+        [ 0.1322, -0.6489, -0.2078,  0.6670,  0.9516],
+        [-0.4097,  0.6479,  1.2487, -0.0555, -1.0920],
+        [ 0.1869, -1.6508, -0.3017, -2.1539,  0.4914]],
        grad_fn=<EmbeddingBackward0>)
-    
-    Shape of the embeddings: torch.Size([5, 5])
     '''
+    print(f"Shape of the embeddings: {embedded_output.shape}") # Shape of the embeddings: torch.Size([5, 5])
+    
     return embedded_output
 
-# Define a sentence
-sentence = 'Deep learning models are powerful.'
 
-# Get our tokens
-tokens = tokenize_sentence(sentence=sentence)
+# Example usage:
+if __name__ == "__main__":
+    # Define a sample sentence
+    sentence = 'Deep learning models are powerful.'
 
-# Create a vocabulary
-vocab = create_word_vocab(tokens=tokens)
+    # Step 1: Tokenize the sentence
+    tokens = tokenize_sentence(sentence=sentence)
 
-# Generate the embeddings
-embedding_output = generate_embedding(
-    vocab=vocab,
-    tokens=tokens,
-    embedding_dim=5
-)
+    # Step 2: Create a vocabulary mapping
+    vocab = create_word_vocab(tokens=tokens)
+
+    # Step 3: Generate embeddings for the tokens
+    embedding_output = generate_embedding(
+        vocab=vocab,
+        tokens=tokens,
+        embedding_dim=5
+    )
