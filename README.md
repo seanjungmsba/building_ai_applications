@@ -1,6 +1,3 @@
----
-<!-- header: Agenda -->
-
 ## Agenda
 
 1. Use Cases
@@ -54,5 +51,3 @@
 
 5. Named Entity Recognition
     - Identifying and classifying entities in text.
-
----
