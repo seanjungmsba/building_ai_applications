@@ -15,8 +15,6 @@ paginate: true
 
 </center>
 
-<!-- footer: Data Engineering Academy -->
-
 ---
 <!-- header: Agenda -->
 
@@ -28,8 +26,6 @@ paginate: true
 4. Attention Mechanisms
 5. Position Embeddings
 6. Project 1 - Sentiment Analysis with Transformer from Scratch via PyTorch
-
----
 7. Popular Variants - BERT and RoBERTa
 8. Project 2 - Text Summarization with BERT Models from HuggingFace
 9. Knowledge Distillation
@@ -39,8 +35,6 @@ paginate: true
 13. Efficient Fine-tuning with Low Rank Adaptation (LoRa)
 14. Popular Variants - T5
 14. Project 3 - Fine-tuning T5 for Named Entity Recognition (NER) with Autotrain
----
-
 16. Generalized Pretrained Transformer (GPT)
 17. Project 4 - Building GPT from Scratch with PyTorch and Lightning AI
 18. Alignment - RLHF and DPO
@@ -48,7 +42,6 @@ paginate: true
 20. Large Language Models (LLMs)
 21. Popular Variants - Llama Architecture
 22. Project 6 - Fine-tuning Llama 3.3 8B for Medical Question-Answering with LitGPT
----
 23. Popular Variants - DeepSeek
 24. Alignment Variant - GRPO
 25. Project 7 - Conducting Local Inference with DeepSeek via Ollama 
@@ -67,9 +60,6 @@ paginate: true
 
 2. Question Answering
     - Answering questions based on a given context.
-
-
----
 
 3. Text Generation
     - Generating text based on a given prompt.
@@ -92,6 +82,72 @@ paginate: true
 
 ![Credits: Dive into Deep Learning](https://d2l.ai/_images/transformer.svg)
 
+# 🧠 Understanding Transformer Architecture (For Software Engineers)
+
+The Transformer is a machine learning architecture designed for tasks like **language translation**, **text summarization**, or even **code generation**. It consists of two major parts: the **Encoder** and the **Decoder**.
+
+Let’s use a real-world analogy you might appreciate:
+
+---
+
+## 🔄 High-Level Analogy
+
+Imagine you're leading two teams:
+
+- 🏗️ **Encoder Team** – Reads a document (e.g. Korean tech spec) and deeply understands it.
+- ✍️ **Decoder Team** – Takes that understanding and writes a clean English version.
+
+Each team uses a communication system that includes **attention mechanisms** to know which parts of the document are most relevant at each step.
+
+---
+
+## 🧱 1. Encoder – “The Analyst”
+
+**Goal:** Understand the input and turn it into a rich, context-aware representation.
+
+- **Input:** A sequence of tokens (e.g. words from a sentence or JSON keys).
+- **Process:**
+  - Convert tokens to embeddings (numerical vectors).
+  - Add positional encoding (to maintain word order).
+  - Use multi-head attention to understand relationships between words.
+  - Normalize and refine with a feed-forward layer.
+- **Output:** A sequence of context-rich embeddings sent to the decoder.
+
+🧠 **Analogy:**  
+Like parsing a config file and annotating each key-value pair with rich metadata and relationships, preparing it for someone else to use.
+
+---
+
+## ✍️ 2. Decoder – “The Developer”
+
+**Goal:** Generate meaningful output (like translated text or predicted code) one token at a time.
+
+- **Input:**
+  - The previous output tokens (initially just `<start>`),
+  - The encoder’s output (context embeddings).
+- **Process:**
+  - Masked multi-head attention prevents peeking ahead.
+  - Another attention layer looks at the encoder’s context.
+  - Output is refined with a feed-forward layer.
+- **Output:** A sequence of tokens forming the final result (e.g. translated sentence or next line of code).
+
+🧠 **Analogy:**  
+Like generating documentation or test cases based on a config file with rich metadata.
+
+---
+
+## 🎯 Bonus: Probability Score Output
+
+Instead of directly outputting words, the decoder produces a **probability distribution** over the entire vocabulary. For example:
+
+```json
+{
+  "the": 0.45,
+  "a": 0.30,
+  "an": 0.25
+}
+```
+The model picks or samples from these probabilities to produce the most likely next word.
 
 </center>
 
