@@ -110,49 +110,52 @@ Tokens: `"The"`, `"brown"`, `"fox"`
 ---
 
 ### Step 1: Token Embeddings
+
 Each token is converted into a vector representation:
 
-\[
+$$
 X = \begin{bmatrix}
-1 & 0 & 1 & 0 \\  \text{// "The"}
-0 & 2 & 0 & 2 \\  \text{// "brown"}
-1 & 1 & 1 & 1    \text{// "fox"}
+1 & 0 & 1 & 0 \\\\
+0 & 2 & 0 & 2 \\\\
+1 & 1 & 1 & 1
 \end{bmatrix}
-\]
+$$
 
 ---
 
-### Step 2: Generate Q, K, V (all equal to X in this example):
+### Step 2: Generate Q, K, V
 
-\[
+All equal to \( X \):
+
+$$
 Q = K = V = X
-\]
+$$
 
 ---
 
 ### Step 3: Compute Attention Scores
 
-\[
-QK^T = 
+$$
+QK^\top =
 \begin{bmatrix}
-2 & 0 & 2 \\
-0 & 8 & 4 \\
+2 & 0 & 2 \\\\
+0 & 8 & 4 \\\\
 2 & 4 & 4
 \end{bmatrix}
-\]
+$$
 
 ---
 
 ### Step 4: Scale Scores
 
-\[
-\frac{QK^T}{\sqrt{4}} = \frac{QK^T}{2} =
+$$
+\frac{QK^\top}{\sqrt{4}} = \frac{QK^\top}{2} =
 \begin{bmatrix}
-1 & 0 & 1 \\
-0 & 4 & 2 \\
+1 & 0 & 1 \\\\
+0 & 4 & 2 \\\\
 1 & 2 & 2
 \end{bmatrix}
-\]
+$$
 
 ---
 
@@ -161,33 +164,28 @@ QK^T =
 Softmax turns scores into probabilities:
 
 For token 1:
-\[
+
+$$
 \text{Softmax}([1, 0, 1]) \approx [0.422, 0.155, 0.422]
-\]
+$$
 
 ---
 
 ### Step 6: Weighted Sum of Values
 
-\[
+$$
 \text{Output}_{\text{The}} = [0.422, 0.155, 0.422] \times V \approx [0.844, 0.577, 0.844, 0.577]
-\]
+$$
 
 ---
 
-### ✅ Final Outputs:
+### ✅ Final Outputs
 
-\[
-\begin{array}{|c|c|}
-\hline
-\textbf{Token} & \textbf{Self-Attention Output} \\
-\hline
-\text{The} & [0.844, 0.577, 0.844, 0.577] \\
-\text{brown} & [0.134, 1.865, 0.134, 2.015] \\
-\text{fox} & [0.577, 1.422, 0.577, 1.422] \\
-\hline
-\end{array}
-\]
+| **Token** | **Self-Attention Output**               |
+|-----------|-----------------------------------------|
+| The       | [0.844, 0.577, 0.844, 0.577]            |
+| brown     | [0.134, 1.865, 0.134, 2.015]            |
+| fox       | [0.577, 1.422, 0.577, 1.422]            |
 
 ---
 
@@ -200,55 +198,50 @@ Same token embeddings and Q = K = V
 
 ### Step 5: Apply Mask
 
-\[
+$$
 M = \begin{bmatrix}
-0 & -\infty & -\infty \\
-0 & 0 & -\infty \\
+0 & -\infty & -\infty \\\\
+0 & 0 & -\infty \\\\
 0 & 0 & 0
 \end{bmatrix}
-\]
+$$
 
-\[
+$$
 \text{Masked Scores} = \text{Scaled Scores} + M =
 \begin{bmatrix}
-1 & -\infty & -\infty \\
-0 & 4 & -\infty \\
+1 & -\infty & -\infty \\\\
+0 & 4 & -\infty \\\\
 1 & 2 & 2
 \end{bmatrix}
-\]
+$$
 
 ---
 
-### Step 6: Apply Softmax (with mask)
+### Step 6: Apply Softmax
 
-\[
-\text{Softmax}([1, -∞, -∞]) = [1, 0, 0]
-\]
+$$
+\text{Softmax}([1, -\infty, -\infty]) = [1, 0, 0]
+$$
 
 ---
 
 ### Step 7: Weighted Sum of Values
 
 For Token `"The"`:
-\[
+
+$$
 \text{Output}_{\text{The}} = [1, 0, 0] \times V = [1, 0, 1, 0]
-\]
+$$
 
 ---
 
-### ✅ Final Outputs:
+### ✅ Final Outputs
 
-\[
-\begin{array}{|c|c|}
-\hline
-\textbf{Token} & \textbf{Masked Attention Output} \\
-\hline
-\text{The} & [1, 0, 1, 0] \\
-\text{brown} & [0.018, 1.964, 0.018, 1.964] \\
-\text{fox} & [0.577, 1.422, 0.577, 1.422] \\
-\hline
-\end{array}
-\]
+| **Token** | **Masked Attention Output**             |
+|-----------|-----------------------------------------|
+| The       | [1, 0, 1, 0]                            |
+| brown     | [0.018, 1.964, 0.018, 1.964]            |
+| fox       | [0.577, 1.422, 0.577, 1.422]            |
 
 ---
 
@@ -259,5 +252,3 @@ For Token `"The"`:
 | Self-Attention       | Each word attends to all others in the sequence   | Captures context from the entire sentence            | You listen to everyone in the room   |
 | Multi-Head Attention | Multiple attention layers in parallel             | Captures multiple relationships and nuances          | Spotlights on different scene parts  |
 | Masked Attention     | Prevents attention to future tokens               | Enables sequential prediction like language modeling | You write with blinders on           |
-
-
