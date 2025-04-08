@@ -63,8 +63,8 @@ $$
 $$
 
 Where:
-- \( W_i^Q, W_i^K, W_i^V \) = learned projection matrices for each head
-- \( W^O \) = final output projection
+- Wᵢᑫ, Wᵢᵏ, Wᵢᵛ: learned projection matrices for each head  
+- Wᵒ: final output projection
 
 ### 📦 Analogy
 
@@ -111,14 +111,20 @@ Tokens: `"The"`, `"brown"`, `"fox"`
 
 ### Step 1: Token Embeddings
 
+
 Each token is converted into a vector representation:
 
+$$
 $$
 X = \begin{bmatrix}
 1 & 0 & 1 & 0 \\\\
 0 & 2 & 0 & 2 \\\\
 1 & 1 & 1 & 1
+1 & 0 & 1 & 0 \\\\
+0 & 2 & 0 & 2 \\\\
+1 & 1 & 1 & 1
 \end{bmatrix}
+$$
 $$
 
 ---
@@ -126,9 +132,14 @@ $$
 ### Step 2: Generate Q, K, V
 
 All equal to \( X \):
+### Step 2: Generate Q, K, V
+
+All equal to \( X \):
 
 $$
+$$
 Q = K = V = X
+$$
 $$
 
 ---
@@ -137,11 +148,16 @@ $$
 
 $$
 QK^\top =
+$$
+QK^\top =
 \begin{bmatrix}
+2 & 0 & 2 \\\\
+0 & 8 & 4 \\\\
 2 & 0 & 2 \\\\
 0 & 8 & 4 \\\\
 2 & 4 & 4
 \end{bmatrix}
+$$
 $$
 
 ---
@@ -150,11 +166,16 @@ $$
 
 $$
 \frac{QK^\top}{\sqrt{4}} = \frac{QK^\top}{2} =
+$$
+\frac{QK^\top}{\sqrt{4}} = \frac{QK^\top}{2} =
 \begin{bmatrix}
+1 & 0 & 1 \\\\
+0 & 4 & 2 \\\\
 1 & 0 & 1 \\\\
 0 & 4 & 2 \\\\
 1 & 2 & 2
 \end{bmatrix}
+$$
 $$
 
 ---
@@ -166,7 +187,10 @@ Softmax turns scores into probabilities:
 For token 1:
 
 $$
+
+$$
 \text{Softmax}([1, 0, 1]) \approx [0.422, 0.155, 0.422]
+$$
 $$
 
 ---
@@ -174,7 +198,9 @@ $$
 ### Step 6: Weighted Sum of Values
 
 $$
+$$
 \text{Output}_{\text{The}} = [0.422, 0.155, 0.422] \times V \approx [0.844, 0.577, 0.844, 0.577]
+$$
 $$
 
 ---
@@ -199,24 +225,37 @@ Same token embeddings and Q = K = V
 ### Step 5: Apply Mask
 
 $$
+$$
 M = \begin{bmatrix}
+0 & -\infty & -\infty \\\\
+0 & 0 & -\infty \\\\
 0 & -\infty & -\infty \\\\
 0 & 0 & -\infty \\\\
 0 & 0 & 0
 \end{bmatrix}
 $$
+$$
 
+$$
 $$
 \text{Masked Scores} = \text{Scaled Scores} + M =
 \begin{bmatrix}
 1 & -\infty & -\infty \\\\
 0 & 4 & -\infty \\\\
+1 & -\infty & -\infty \\\\
+0 & 4 & -\infty \\\\
 1 & 2 & 2
 \end{bmatrix}
+$$
 $$
 
 ---
 
+### Step 6: Apply Softmax
+
+$$
+\text{Softmax}([1, -\infty, -\infty]) = [1, 0, 0]
+$$
 ### Step 6: Apply Softmax
 
 $$
@@ -230,7 +269,10 @@ $$
 For Token `"The"`:
 
 $$
+
+$$
 \text{Output}_{\text{The}} = [1, 0, 0] \times V = [1, 0, 1, 0]
+$$
 $$
 
 ---
