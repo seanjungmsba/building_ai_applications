@@ -1,6 +1,5 @@
 ---
 
-```markdown
 # 🧭 Positional Embeddings in Transformers
 
 Transformers are incredibly powerful for modeling sequential data, but they process inputs **in parallel**, meaning they have **no built-in sense of order**. To overcome this, we use **positional embeddings** to inject information about token positions directly into the model.
