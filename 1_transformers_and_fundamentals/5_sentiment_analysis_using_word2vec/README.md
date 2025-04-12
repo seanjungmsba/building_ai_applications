@@ -1,6 +1,3 @@
----
-
-```markdown
 ## 🧠 Word2Vec and Gensim
 
 ### 📌 What is Word2Vec?
