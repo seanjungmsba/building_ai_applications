@@ -1,0 +1,5 @@
+sentencepiece
+transformers[torch]
+torch
+flask
+streamlit
