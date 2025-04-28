@@ -53,30 +53,27 @@ Here’s the structural breakdown of GPT:
 ### 🛠 Architecture Diagram
 
 ```mermaid
-flowchart TD
-    %% GPT Model Architecture
-
-    A[Input Tokens] --> B[Tokenization]
-    B --> C[Token Embedding]
-    C --> D[Learned Position Embedding]
-    
-    subgraph Decoder [Decoder (Stack of Causal Attention Blocks)]
-        D --> E1[Causal Attention Block 1]
-        E1 --> E2[Causal Attention Block 2]
-        E2 --> E3[Causal Attention Block 3]
+flowchart TB
+    subgraph GPT_Model
+        direction TB
+        Input[Input Tokens]
+        PosEnc[Learned Position Embedding]
+        Embedding[Token Embedding]
+        subgraph Decoder
+            direction TB
+            CausalAttention1[Causal Attention Block 1]
+            CausalAttention2[Causal Attention Block 2]
+            CausalAttention3[Causal Attention Block 3]
+        end
+        LN[Layer Normalization]
+        Output[Output Probabilities]
     end
 
-    E3 --> F[Layer Normalization]
-    F --> G[Output Probabilities (Softmax over Vocabulary)]
-
-    %% Style
-    classDef inputStyle fill:#c6e2ff,stroke:#333,stroke-width:2px;
-    classDef decoderStyle fill:#e0c6ff,stroke:#663399,stroke-width:2px;
-    classDef outputStyle fill:#c6ffd2,stroke:#2e8b57,stroke-width:2px;
-
-    class A,B,C,D inputStyle;
-    class Decoder,E1,E2,E3 decoderStyle;
-    class F,G outputStyle;
+    Input -->|Tokenization| Embedding
+    Embedding --> PosEnc
+    PosEnc --> Decoder
+    Decoder --> LN
+    LN --> Output
 ```
 
 # 📚 GPT Model Architecture Explanation (Stage-by-Stage)
