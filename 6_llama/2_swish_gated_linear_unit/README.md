@@ -4,111 +4,184 @@
 
 ## 📖 Description
 
-- **SwiGLU** is an activation function variant used in modern transformer architectures like **Llama** to **speed up training** and **improve model quality**.
-- It is a **gated version** of the **Swish** activation and serves as a **more efficient replacement** for functions like **GeLU**.
-- SwiGLU is smooth and non-monotonic, meaning it introduces gentle non-linearities that help models **learn more expressive representations** without abrupt changes (like ReLU's hard zeroing).
+* **SwiGLU** is an advanced **activation function** used in modern transformer architectures such as **LLaMA**, **GPT-4**, and **PaLM**.
+* It is derived from **Swish** and **Gated Linear Units (GLU)**, combining the best of **non-linear expressiveness** and **gating control** to allow models to learn more complex and stable patterns.
+* Compared to ReLU or even GeLU, SwiGLU improves training **speed**, **memory efficiency**, and **numerical stability** without sacrificing accuracy.
 
 ---
-<br />
 
-## 🔥 Why Use SwiGLU Over GeLU?
+## 🔍 Core Idea: Gating with Smooth Activation
 
-| Aspect                    | GeLU                                      | SwiGLU                                 |
-|----------------------------|------------------------------------------|----------------------------------------|
-| Speed                     | Involves approximating error functions (erf) | Simple sigmoid and element-wise multiplication |
-| Memory Efficiency         | Slightly higher, due to intermediate computations | Lower memory footprint |
-| Numerical Stability       | Risk of instability with extreme inputs | More stable due to bounded sigmoid |
-| Training Impact           | Smooth activation, good results | Similar or better results, faster training |
+SwiGLU introduces **gating** into the activation layer by splitting the input tensor and **modulating one half using the sigmoid of the other**:
 
-✅ **Summary**: SwiGLU achieves **comparable or better accuracy** while **reducing computational overhead**, making it ideal for large-scale transformer models like Llama.
+* ✅ **Gating mechanism** enables control over information flow
+* ✅ **Sigmoid** adds a soft decision boundary
+* ✅ **Element-wise product** introduces nonlinear transformation with multiplicative interaction
+
+This makes SwiGLU **richer than ReLU/GeLU** in terms of expressive capacity.
 
 ---
-<br />
 
 ## 🧮 Mathematical Formula
 
-The SwiGLU operation can be broken into **three main steps**:
+SwiGLU is defined in three key steps:
 
-1. **Chunking**:  
-   The input tensor \( x \) is **split into two halves** along the hidden dimension:  
-   $$
-   \text{Chunk}(x) \rightarrow (a, b)
-   $$
-   where \( a \) and \( b \) are equal-sized partitions of \( x \).
+### 1. **Chunking**
 
-2. **Sigmoid Activation**:  
-   The **first chunk** \( a \) passes through a **sigmoid activation function** \( \sigma(x) \), which smoothly squashes values between 0 and 1:
-   $$
-   \sigma(a) = \frac{1}{1 + e^{-a}}
-   $$
+Split input tensor $x$ into two equal parts along the last dimension:
 
-3. **Element-wise Multiplication**:  
-   Finally, the second chunk \( b \) is **element-wise multiplied** by the sigmoid-activated first chunk:
-   $$
-   \text{SwiGLU}(a, b) = b \times \sigma(a)
-   $$
+$$
+\text{Chunk}(x) \rightarrow (a, b)
+$$
 
----
-<br />
+### 2. **Sigmoid Activation**
 
-## 🔥 How It Works (Step-by-Step Example)
+Apply the sigmoid function to chunk $a$:
 
-Let's say:
+$$
+\sigma(a) = \frac{1}{1 + e^{-a}}
+$$
 
-- Input tensor \( x = [4, -1, 5, 2] \)
+### 3. **Gated Multiplication**
 
-### Step 1: Chunking
+Compute the final activation:
 
-Split into two halves:
-- \( a = [4, -1] \)
-- \( b = [5, 2] \)
-
-### Step 2: Sigmoid Activation
-
-Apply sigmoid to \( a \):
-- \( \sigma(4) \approx 0.982 \)
-- \( \sigma(-1) \approx 0.269 \)
-
-So:
-- \( \sigma(a) = [0.982, 0.269] \)
-
-### Step 3: Multiplication
-
-Multiply element-wise:
-- \( [5 \times 0.982, 2 \times 0.269] = [4.91, 0.538] \)
-
-Thus, **SwiGLU output** = `[4.91, 0.538]`
+$$
+\text{SwiGLU}(a, b) = b \cdot \sigma(a)
+$$
 
 ---
-<br />
 
-## ⚙️ How It's Used in Transformers (e.g., Llama)
+## 🔬 Example: Step-by-Step Walkthrough
 
-- In transformer blocks, after the multi-head attention and before applying the output layer, a **feedforward network** (FFN) uses SwiGLU instead of GeLU.
-- This allows **faster training**, **lower memory usage**, and often **better generalization** without sacrificing performance.
-- SwiGLU **preserves the gating mechanism** similar to Gated Linear Units (GLUs), offering **richer transformations** for each token’s embedding.
+Suppose:
+
+```python
+x = torch.tensor([4.0, -1.0, 5.0, 2.0])  # shape = (4,)
+```
+
+### Step 1: Chunk
+
+```python
+a = [4.0, -1.0]
+b = [5.0, 2.0]
+```
+
+### Step 2: Apply sigmoid to a
+
+```python
+sigmoid(a) ≈ [0.982, 0.269]
+```
+
+### Step 3: Multiply elementwise
+
+```python
+output = [5.0 * 0.982, 2.0 * 0.269] ≈ [4.91, 0.538]
+```
+
+➡️ Final SwiGLU output: **`[4.91, 0.538]`**
 
 ---
-<br />
 
-## 📊 Quick Visual Comparison: SwiGLU vs GeLU
+## 🧠 Why SwiGLU Is Used in Transformers (like LLaMA)
 
-| Feature | GeLU | SwiGLU |
-|--------|------|--------|
-| Shape | Smooth but based on Gaussian | Smooth based on sigmoid |
-| Speed | Slower | Faster |
-| Stability | Moderate | High |
-| Training Effect | Very good | Equally good, sometimes better |
+In the feedforward layer of a transformer block, the sequence typically looks like:
+
+```python
+x → Linear → Activation → Linear
+```
+
+For models using **SwiGLU**, the middle activation is implemented as:
+
+```python
+x → Linear(2d) → SwiGLU → Linear(d)
+```
+
+The **first linear layer doubles the hidden size**, producing two tensors (`a` and `b`). SwiGLU **gates the values** before projecting them back to the original dimensionality.
+
+This offers:
+
+| Benefit          | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
+| 🚀 **Speed**     | Faster than GeLU due to simpler math (sigmoid vs erf)      |
+| 🧠 **Stability** | Bounded sigmoid avoids overflow/underflow issues           |
+| 🪶 **Memory**    | Reduces intermediate tensor creation                       |
+| 🎯 **Accuracy**  | Often yields better or equal performance on NLP benchmarks |
 
 ---
-<br />
 
-## ✍️ Summary
+## 🖼 Visual Intuition
 
-| Feature | Details |
-|---------|---------|
-| Name | SwiGLU (Swish-Gated Linear Unit) |
-| Purpose | Fast, stable, efficient non-linearity for transformers |
-| Mathematical Trick | Split tensor → Apply sigmoid → Multiply |
-| Model Usage | Llama, GPT-4, modern transformers |
-| Benefit | Speed and memory efficiency |
+```
+        ┌────────────┐
+        │  Input x   │
+        └────┬───────┘
+             ▼
+   ┌─────────────────────┐
+   │ Chunk into (a, b)   │  ← split x along last dim
+   └────┬────────┬───────┘
+        ▼        ▼
+   Sigmoid(a)    b
+        │        │
+        ▼        ▼
+   ┌───────────────┐
+   │ a × sigmoid(b)│  ← element-wise product (gating)
+   └──────┬────────┘
+          ▼
+      SwiGLU Output
+```
+
+---
+
+## 📊 SwiGLU vs GeLU: Comparison Table
+
+| Property              | GeLU                       | SwiGLU                   |
+| --------------------- | -------------------------- | ------------------------ |
+| Core Function         | Gaussian Error Linear Unit | Swish + Gating           |
+| Speed                 | Slower due to erf          | Faster (sigmoid only)    |
+| Expression Power      | High                       | Higher (due to gating)   |
+| Numerical Stability   | Moderate                   | Excellent                |
+| Usage in Transformers | Common                     | LLaMA, GPT-4, PaLM, GLaM |
+
+---
+
+## ⚙️ Implementation in PyTorch
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class SwiGLU(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Split input tensor along last dimension into two chunks
+        a, b = x.chunk(2, dim=-1)
+        # Apply sigmoid to first chunk, and multiply with second chunk
+        return F.silu(a) * b  # silu is numerically stable swish variant
+```
+
+Used after a linear layer that expands the input dim from `d` to `2d`.
+
+---
+
+## 🧩 Summary
+
+| Feature         | Details                                |
+| --------------- | -------------------------------------- |
+| Full Name       | Swish-Gated Linear Unit                |
+| Formula         | `SwiGLU(x) = b * sigmoid(a)`           |
+| Activation Type | Smooth, Gated                          |
+| Speed           | Faster than GeLU                       |
+| Found In        | LLaMA, GPT-4, PaLM                     |
+| Key Strength    | Expressive gating with stable training |
+
+---
+
+## 📚 Further Reading
+
+* 🔬 [Gated Linear Units (GLU) - Facebook](https://arxiv.org/abs/1612.08083)
+* 🧠 [SwiGLU Activation (Official Code Reference)](https://github.com/facebookresearch/llama)
+* 📝 [Silicon-Valley-friendly Explanation of SwiGLU](https://sebastianraschka.com/blog/2023/swiglu-explained.html)
