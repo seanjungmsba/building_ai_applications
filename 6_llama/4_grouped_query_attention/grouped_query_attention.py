@@ -1,82 +1,126 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
 
 class GroupedQueryAttention(nn.Module):
     """
-    Implements Grouped Query Attention (GQA), where queries are projected per-head,
-    but keys and values are shared across groups of heads.
+    Grouped Query Attention (GQA)
+
+    Implements a memory- and compute-efficient variant of multi-head attention used in models like LLaMA.
+    Instead of assigning a unique key and value head to each query head, GQA shares key/value projections 
+    across groups of query heads.
+
+    Args:
+        embed_dim (int): Total embedding dimension of the model.
+        num_heads (int): Total number of query heads.
+        num_kv_heads (int): Number of shared key/value heads (must divide num_heads).
+        dropout (float): Dropout rate applied to attention weights.
     """
 
-    def __init__(self, embed_dim: int, num_query_heads: int, num_kv_heads: int, dropout: float = 0.1):
-        """
-        Args:
-            embed_dim (int): Dimension of input and output embeddings
-            num_query_heads (int): Number of query heads (higher than kv heads)
-            num_kv_heads (int): Number of key/value heads (shared among query groups)
-            dropout (float): Dropout probability for attention weights
-        """
+    def __init__(self, embed_dim, num_heads, num_kv_heads, dropout):
         super().__init__()
-        assert embed_dim % num_query_heads == 0, "Embedding dimension must be divisible by number of query heads"
-        assert num_query_heads % num_kv_heads == 0, "Query heads must be divisible by key/value heads"
 
-        self.embed_dim = embed_dim
-        self.num_query_heads = num_query_heads
-        self.num_kv_heads = num_kv_heads
-        self.head_dim = embed_dim // num_query_heads
-        self.q_per_kv = num_query_heads // num_kv_heads
+        # === Sanity checks ===
+        assert embed_dim % num_heads == 0, "embed_dim must be divisible by num_heads"
+        assert num_heads % num_kv_heads == 0, "num_heads must be divisible by num_kv_heads"
 
-        # Query projection: one per query head
-        self.q_proj = nn.Linear(embed_dim, embed_dim, bias=False)
-        # Key and Value projections: fewer heads, shared across groups
-        self.k_proj = nn.Linear(embed_dim, self.head_dim * num_kv_heads, bias=False)
-        self.v_proj = nn.Linear(embed_dim, self.head_dim * num_kv_heads, bias=False)
+        # === Save core attributes ===
+        self.embed_dim = embed_dim                # Total embedding size
+        self.num_heads = num_heads                # Total query heads
+        self.num_kv_heads = num_kv_heads          # Shared key/value heads
+        self.head_dim = embed_dim // num_heads    # Dimension of each query head
+        self.kv_group_size = num_heads // num_kv_heads  # Query heads per KV head
 
-        # Output projection
+        # === Linear projections ===
+        # Full Q projection: output shape [B, S, E]
+        self.q_proj = nn.Linear(embed_dim, embed_dim)
+
+        # K and V projections use fewer parameters:
+        # Output shape is smaller: [B, S, E / kv_group_size]
+        self.k_proj = nn.Linear(embed_dim, embed_dim // self.kv_group_size)
+        self.v_proj = nn.Linear(embed_dim, embed_dim // self.kv_group_size)
+
+        # === Output projection ===
         self.out_proj = nn.Linear(embed_dim, embed_dim)
 
+        # === Dropout on attention weights ===
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor, mask: torch.Tensor = None) -> torch.Tensor:
+    def forward(self, x):
         """
-        Compute grouped query attention for the input sequence.
+        Forward pass of Grouped Query Attention.
 
         Args:
-            x (Tensor): Input tensor of shape (batch_size, seq_len, embed_dim)
-            mask (Tensor): Optional mask tensor of shape (batch_size, 1, 1, seq_len)
+            x (Tensor): Input tensor of shape (B, S, E) where:
+                - B = batch size
+                - S = sequence length
+                - E = embedding dimension
 
         Returns:
-            Tensor: Output tensor of shape (batch_size, seq_len, embed_dim)
+            Tensor: Output tensor of shape (B, S, E)
         """
-        B, T, _ = x.size()  # Batch size, sequence length
 
-        # Project input to queries, keys, values
-        q = self.q_proj(x).view(B, T, self.num_query_heads, self.head_dim).transpose(1, 2)  # (B, QH, T, D)
-        k = self.k_proj(x).view(B, T, self.num_kv_heads, self.head_dim).transpose(1, 2)     # (B, KVH, T, D)
-        v = self.v_proj(x).view(B, T, self.num_kv_heads, self.head_dim).transpose(1, 2)     # (B, KVH, T, D)
+        B, S, E = x.size()  # Unpack input dimensions
 
-        # Expand k/v to match q: duplicate each kv head q_per_kv times
-        k = k.unsqueeze(2).repeat(1, 1, self.q_per_kv, 1, 1).view(B, self.num_query_heads, T, self.head_dim)
-        v = v.unsqueeze(2).repeat(1, 1, self.q_per_kv, 1, 1).view(B, self.num_query_heads, T, self.head_dim)
+        # === Compute Query ===
+        # Shape after projection: (B, S, E)
+        # Then reshape to (B, num_heads, S, head_dim)
+        q = self.q_proj(x).view(B, S, self.num_heads, self.head_dim).transpose(1, 2)
 
-        # Attention score computation
-        attn_scores = torch.matmul(q, k.transpose(-2, -1)) / (self.head_dim ** 0.5)  # (B, QH, T, T)
+        # === Compute Key and Value ===
+        # We use fewer key/value heads → reduced dimension: E / kv_group_size
+        kv_embed_dim = self.embed_dim // self.kv_group_size
+        kv_head_dim = kv_embed_dim // self.num_kv_heads  # dim per kv head
 
-        if mask is not None:
-            attn_scores = attn_scores.masked_fill(mask == 0, float("-inf"))
+        # Shape after projection and reshaping: (B, num_kv_heads, S, kv_head_dim)
+        k = self.k_proj(x).view(B, S, self.num_kv_heads, kv_head_dim).transpose(1, 2)
+        v = self.v_proj(x).view(B, S, self.num_kv_heads, kv_head_dim).transpose(1, 2)
 
+        # === Align KV with Q ===
+        # Repeat K and V so that each query head has a corresponding key/value
+        # Final shape: (B, num_heads, S, head_dim)
+        k = k.repeat_interleave(self.kv_group_size, dim=1)
+        v = v.repeat_interleave(self.kv_group_size, dim=1)
+
+        # === Scaled Dot-Product Attention ===
+        # Attention score: (B, num_heads, S, S)
+        attn_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.head_dim)
+
+        # === Causal Mask ===
+        # Prevent attending to future positions (for autoregressive decoding)
+        causal_mask = torch.tril(torch.ones(S, S, device=x.device)).unsqueeze(0).unsqueeze(0)  # (1, 1, S, S)
+        attn_scores = attn_scores.masked_fill(causal_mask == 0, float('-inf'))
+
+        # === Softmax normalization ===
         attn_weights = F.softmax(attn_scores, dim=-1)
+
+        # === Dropout on attention weights ===
         attn_weights = self.dropout(attn_weights)
 
-        # Apply attention weights to value
-        attn_output = torch.matmul(attn_weights, v)  # (B, QH, T, D)
+        # === Weighted sum over value vectors ===
+        # Output: (B, num_heads, S, head_dim)
+        attn_output = torch.matmul(attn_weights, v)
 
-        # Reshape back to (B, T, embed_dim)
-        attn_output = attn_output.transpose(1, 2).contiguous().view(B, T, self.embed_dim)
+        # === Merge heads ===
+        # Transpose and reshape: (B, S, E)
+        attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, E)
 
+        # === Final output projection ===
         return self.out_proj(attn_output)
 
-gqa = GroupedQueryAttention(embed_dim=512, num_query_heads=16, num_kv_heads=4)
-x = torch.randn(8, 128, 512)  # (batch, seq_len, embed_dim)
-out = gqa(x)
-print(f"Output:", {out.shape})  # Output: (8, 128, 512)
+# === Example Usage ===
+if __name__ == "__main__":
+    embed_dim = 64
+    num_heads = 8
+    num_kv_heads = 2
+    dropout = 0.1
+
+    gqa = GroupedQueryAttention(embed_dim, num_heads, num_kv_heads, dropout)
+    gqa.eval()
+
+    dummy_input = torch.randn(2, 5, embed_dim)
+    output = gqa(dummy_input)
+
+    print("Input shape:", dummy_input.shape)
+    print("Output shape:", output.shape)
