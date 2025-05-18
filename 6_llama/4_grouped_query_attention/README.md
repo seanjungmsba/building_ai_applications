@@ -1,7 +1,3 @@
-Here’s an enhanced and fully elaborated version of your `README.md` for **Grouped Query Attention (GQA)**. It expands on the **what**, **why**, and **how**, gives examples and visual intuition, and places GQA in the context of modern large language models like **LLaMA 2** and **GPT-4**.
-
----
-
 # 🧠 Grouped Query Attention (GQA)
 
 ---
