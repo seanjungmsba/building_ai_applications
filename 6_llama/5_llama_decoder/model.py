@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# Class for Llama
 class Llama(nn.Module):
     """
     Llama Language Model Architecture (simplified)
@@ -78,6 +79,7 @@ class Llama(nn.Module):
 
         return logits
 
+# Class for Decoder
 class Decoder(nn.Module):
     """
     A single decoder block from the LLaMA architecture.
@@ -192,7 +194,6 @@ class RotaryPositionalEmbedding(nn.Module):
         # Apply RoPE: rotate_half applies 90-degree rotation to half of hidden dim
         return (x * cos_emb) + (rotate_half(x) * sin_emb)
 
-
 # ------------------------------------------------------
 # 🔁 Rotation Helper Function
 # ------------------------------------------------------
@@ -213,6 +214,7 @@ def rotate_half(x: torch.Tensor) -> torch.Tensor:
     # Rotate: [-x2, x1] simulates complex multiplication (used in RoPE)
     return torch.cat((-x2, x1), dim=-1)
 
+# Class for GroupedQueryAttention
 class GroupedQueryAttention(nn.Module):
     """
     Grouped Query Attention (GQA)
@@ -319,6 +321,7 @@ class GroupedQueryAttention(nn.Module):
         # === Final output projection ===
         return self.out_proj(attn_output)
 
+# Class for FeedForward
 class FeedForward(nn.Module):
     """
     FeedForward Layer with SwiGLU activation as used in LLaMA and other transformer models.
@@ -376,7 +379,8 @@ class SwiGLU(nn.Module):
 
         # Sigmoid Linear Unit
         return F.silu(a) * b
-    
+
+# Class for RMSNorm
 class RMSNorm(nn.Module):
     """
     Implements Root Mean Square Layer Normalization (RMSNorm), a variant of layer normalization
@@ -414,3 +418,4 @@ class RMSNorm(nn.Module):
         x_normed = x / (rms + self.eps)
 
         return self.weight * x_normed
+    
