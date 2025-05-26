@@ -1,0 +1,4 @@
+lancedb 
+python-dotenv 
+langchain-openai 
+langchain-community
