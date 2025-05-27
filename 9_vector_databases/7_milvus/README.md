@@ -13,10 +13,10 @@ This project demonstrates how to build a semantic vector search system using:
 ```
 
 .
-├── .env                           # API key for OpenAI
+├── .env                          # API key for OpenAI
 ├── docker-compose.yml            # Docker config for Milvus
-├── milvus\_index.py               # Creates and configures Milvus collection
-├── milvus\_langchain\_example.py   # Adds documents, performs similarity search
+├── milvus_index.py               # Creates and configures Milvus collection
+├── milvus_langchain_example.py   # Adds documents, performs similarity search
 ├── requirements.txt              # Python dependencies
 └── README.md                     # Project documentation
 
