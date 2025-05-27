@@ -1,0 +1,8 @@
+langchain
+langchain-core
+langchain-openai
+langchain-milvus
+pymilvus
+python-dotenv
+numpy
+rich
