@@ -1,0 +1,6 @@
+faiss-cpu
+numpy
+python-dotenv
+langchain-openai
+langchain-community
+langchain-core
